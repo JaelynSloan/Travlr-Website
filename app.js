@@ -1,10 +1,15 @@
+require('dotenv').config();
+
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
 var hbs = require('hbs');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+const passport = require('passport');
+
 require("./app_api/database/db");
+require('./app_api/config/passport');
 
 var indexRouter = require('./app_server/routes/index');
 var usersRouter = require('./app_server/routes/users');
@@ -33,6 +38,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(passport.initialize());
 
 // allow CORS
 app.use('/api', (req, res, next) => {
@@ -42,15 +48,25 @@ app.use('/api', (req, res, next) => {
   next();
 })
 
+// use routers for specific URLs
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/travel', travelRouter);
-app.use('/travel', aboutRouter);
-app.use('/travel', contactRouter);
-app.use('/travel', mealsRouter);
-app.use('/travel', newsRouter);
-app.use('/travel', roomsRouter);
+app.use('/about', aboutRouter);
+app.use('/contact', contactRouter);
+app.use('/meals', mealsRouter);
+app.use('/news', newsRouter);
+app.use('/rooms', roomsRouter);
 app.use('/api', apiRouter);
+
+// catch unauthorized error and create 401
+app.use(function(err, req, res, next) {
+  if (err.name === 'UnauthorizedError') {
+    res
+      .status(401)
+      .json({ "message": err.name + ": " + err.message});
+  }
+});
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
